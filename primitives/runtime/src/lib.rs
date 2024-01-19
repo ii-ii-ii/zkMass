@@ -3,12 +3,16 @@
 
 mod circom;
 mod error;
-mod jwk;
+pub mod jwk;
 mod poseidon;
 mod pvk;
+#[cfg(feature = "std")]
+pub mod test_helper;
+#[cfg(test)]
+mod tests;
 mod utils;
-mod zk_input;
-mod zk_sig;
+pub mod zk_input;
+pub mod zk_sig;
 
 use scale_codec::{Decode, Encode, MaxEncodedLen};
 use scale_info::TypeInfo;

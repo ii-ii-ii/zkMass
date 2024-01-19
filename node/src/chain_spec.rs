@@ -2,7 +2,7 @@ use node_template_runtime::{AccountId, RuntimeGenesisConfig, Signature, WASM_BIN
 use sc_service::ChainType;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
-use sp_core::{sr25519, Pair, Public};
+use sp_core::{crypto::AccountId32, sr25519, Pair, Public};
 use sp_runtime::traits::{IdentifyAccount, Verify};
 
 // The URL for the telemetry server.
@@ -34,6 +34,11 @@ pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
 }
 
 pub fn development_config() -> Result<ChainSpec, String> {
+    let s =
+        hex::decode("197cf48b729ff12596cbc046c7fe8f88f92ac5f0b6fc42b4c1dcc532d37ccea2").unwrap();
+    let mut slice = [0u8; 32];
+    slice.copy_from_slice(&s[..]);
+
     Ok(ChainSpec::builder(
         WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
         None,
@@ -52,6 +57,8 @@ pub fn development_config() -> Result<ChainSpec, String> {
             get_account_id_from_seed::<sr25519::Public>("Bob"),
             get_account_id_from_seed::<sr25519::Public>("Alice//stash"),
             get_account_id_from_seed::<sr25519::Public>("Bob//stash"),
+            // TODO: remove hardcode zklogin address,
+            AccountId32::from(slice),
         ],
         true,
     ))
@@ -59,6 +66,11 @@ pub fn development_config() -> Result<ChainSpec, String> {
 }
 
 pub fn local_testnet_config() -> Result<ChainSpec, String> {
+    let s =
+        hex::decode("197cf48b729ff12596cbc046c7fe8f88f92ac5f0b6fc42b4c1dcc532d37ccea2").unwrap();
+    let mut slice = [0u8; 32];
+    slice.copy_from_slice(&s[..]);
+
     Ok(ChainSpec::builder(
         WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?,
         None,
@@ -85,6 +97,8 @@ pub fn local_testnet_config() -> Result<ChainSpec, String> {
             get_account_id_from_seed::<sr25519::Public>("Dave//stash"),
             get_account_id_from_seed::<sr25519::Public>("Eve//stash"),
             get_account_id_from_seed::<sr25519::Public>("Ferdie//stash"),
+            // TODO: remove hardcode zklogin address,
+            AccountId32::from(slice),
         ],
         true,
     ))
