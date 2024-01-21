@@ -9,6 +9,7 @@ use ark_bn254::Bn254;
 use ark_crypto_primitives::snark::SNARK;
 use ark_groth16::{Groth16, Proof};
 pub use base64ct::{Base64UrlUnpadded, Encoding};
+use sp_core::U256;
 
 #[derive(Debug, Clone)]
 pub enum ZkLoginEnv {
@@ -29,7 +30,7 @@ pub struct Signature<S> {
     source: JwkId,
     input: ZkLoginInputs,
     max_epoch: u64,
-    eph_pubkey_bytes: [u8; EPH_PUB_KEY_LEN],
+    eph_pubkey: [u8; EPH_PUB_KEY_LEN],
     sig: S,
 }
 
@@ -38,16 +39,10 @@ impl<S> Signature<S> {
         source: JwkId,
         input: ZkLoginInputs,
         max_epoch: u64,
-        eph_pubkey_bytes: [u8; 33],
+        eph_pubkey: [u8; 32],
         sig: S,
     ) -> Self {
-        Self { source, input, max_epoch, eph_pubkey_bytes, sig }
-    }
-
-    pub fn get_onchain_address(&self) -> AccountId32 {
-        let address_seed = self.input.get_address_seed();
-        let s: [u8; 32] = address_seed.into();
-        AccountId32::from(s)
+        Self { source, input, max_epoch, eph_pubkey, sig }
     }
 }
 
@@ -60,34 +55,22 @@ where
 
     fn verify<L: Lazy<[u8]>>(
         &self,
-        mut msg: L,
+        msg: L,
         signer: &<Self::Signer as IdentifyAccount>::AccountId,
     ) -> bool {
-        // check the validity of signer
-        let account_id = self.get_onchain_address();
+        let address_seed = U256::from_big_endian(signer.as_ref());
 
-        if &account_id != signer {
-            return false;
-        }
-
-        let pub_key: AccountId32 = if EPH_PUB_KEY_LEN == 33 {
-            let mut d = [0_u8; 32];
-            d.copy_from_slice(&self.eph_pubkey_bytes[1..]);
-            d.into()
-        } else {
-            todo!("unimpl");
-        };
-
-        if !self.sig.verify(msg, &pub_key) {
+        if !self.sig.verify(msg, &AccountId32::from(self.eph_pubkey)) {
             return false
         }
 
         // verify zk proof
         verify_zk_login(
+            address_seed,
             &self.input,
             &self.source,
             self.max_epoch,
-            &self.eph_pubkey_bytes,
+            &self.eph_pubkey,
             &ZkLoginEnv::Prod,
         )
         .is_ok()
@@ -95,6 +78,7 @@ where
 }
 
 pub fn verify_zk_login(
+    address_seed: U256,
     input: &ZkLoginInputs,
     jwk_id: &JwkId,
     max_epoch: u64,
@@ -112,7 +96,7 @@ pub fn verify_zk_login(
     match verify_zk_login_proof_with_fixed_vk(
         env,
         &input.get_proof().as_arkworks()?,
-        &[input.calculate_all_inputs_hash(eph_pubkey_bytes, &modulus, max_epoch)?],
+        &[input.calculate_all_inputs_hash(address_seed, eph_pubkey_bytes, &modulus, max_epoch)?],
     ) {
         Ok(true) => Ok(()),
         Ok(false) | Err(_) => Err(ZkAuthError::ProofVerifyingFailed),
