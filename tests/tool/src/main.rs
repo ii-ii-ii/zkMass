@@ -25,6 +25,8 @@ fn main() {
 
     // A test key, may can replace to any one, but must ed25519 key pair.
     let signing_key = get_test_eph_key();
+    let signing_pub = signing_key.public();
+    println!("{:?}", signing_pub);
 
     // can be used in test,
     let google_kid = "1f40f0a8ef3d880978dc82f25c3ec317c6a5b781";
@@ -40,7 +42,7 @@ fn main() {
     // construct Transfer Call
     let dest = AccountId::from([0u8; 32]);
     let call: RuntimeCall =
-        BalancesCall::transfer_keep_alive { dest: Address::Id(dest.clone()), value: 100 }.into();
+        BalancesCall::transfer_keep_alive { dest: Address::Id(dest.clone()), value: 600 }.into();
 
     let genesis_block: H256 = CHAIN_GENESIS.into();
     let extra: SignedExtra = (
